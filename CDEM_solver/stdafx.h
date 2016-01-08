@@ -10,6 +10,8 @@
 #include <stdio.h>
 #include <tchar.h>
 #include "Eigen/Dense"
+#include <iostream>
+#include <cmath>
 
 
 

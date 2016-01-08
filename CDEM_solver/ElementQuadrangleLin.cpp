@@ -1,16 +1,21 @@
 #include "stdafx.h"
 #include "ElementQuadrangleLin.h"
 
-
-ElementQuadrangleLin::ElementQuadrangleLin()
+ElementQuadrangleLin::ElementQuadrangleLin(double _E, double _nu, double _density, double _thickness, double _alfaC, int * _nodes)
 {
+	E = _E;
+	nu = _nu;
+	density = _density;
+	thickness = _thickness;
+	alfaC = _alfaC;
+	nodes = _nodes;
 }
 
 
 ElementQuadrangleLin::~ElementQuadrangleLin()
 {
+	delete[] nodes;
 }
-
 
 
 // Calculate and store local matrices
@@ -21,6 +26,81 @@ void ElementQuadrangleLin::set_matrices()
 // Calculate local stiffness matrix. Use reduced integration with hourglass stabilization.
 void ElementQuadrangleLin::set_K_isoparametric()
 {
+	double shear = E / (2 + 2 * nu);
+	double lame = E * nu / ((1 + nu) * (1 - 2 * nu));
+	Eigen::Matrix3d C;
+	C << 2 * shear + lame, lame, 0.,
+		lame, 2 * shear + lame, 0.,
+		0., 0., shear;
+	
+	Eigen::Vector4d x, y;
+	int i;
+	for (i = 0; i < 4; i++)
+	{
+		x(i) = domain->nodes[nodes[i] - 1].x;
+		y(i) = domain->nodes[nodes[i] - 1].y;
+	}
+	const double gp = sqrt(1. / 3.);
+	double gps[5][2] = { {-gp,-gp},{ gp,-gp },{ gp,gp },{ -gp,gp },{0.,0.} };
+	Eigen::Vector4d g_xi(-0.25, 0.25, 0.25, -0.25);
+	Eigen::Vector4d g_eta(-0.25, -0.25, 0.25, 0.25);
+	Eigen::Vector4d h(0.25, -0.25, 0.25, -0.25);
+	Eigen::Matrix2d J[5];
+	Eigen::Matrix2d J_inv[5];
+	for (i = 0; i < 5; i++)
+	{
+		double xi = gps[i][0];
+		double eta = gps[i][1];
+		J[i](0, 0) = x.dot(g_xi + eta*h);
+		J[i](0, 1) = x.dot(g_eta + xi*h);
+		J[i](1, 0) = y.dot(g_xi + eta*h);
+		J[i](1, 1) = y.dot(g_eta + xi*h);
+		J_inv[i] = J[i].inverse;
+	}
+	Eigen::MatrixXd xieta(4, 2);
+	xieta << g_xi, g_eta;
+	Eigen::MatrixXd b(4, 2);
+	b = xieta*J_inv[4];
+	Eigen::MatrixXd B_0T(8,3);
+	Eigen::Vector4d zers = Eigen::Vector4d::Zero();
+	B_0T << b.block<4,1>(0,0), zers, b.block<4, 1>(0, 1), zers, b.block<4, 1>(0, 1), b.block<4, 1>(0, 0);
+	Eigen::MatrixXd xy(2, 4);
+	xy << x,y;
+	Eigen::Matrix4d gamma;
+	gamma = Eigen::Matrix4d::Identity() - b*xy.transpose();
+	gamma = gamma * h;
+	Eigen::MatrixXd j_0_dev(3, 4);
+	Eigen::Matrix2d j0iT = J_inv[4].transpose();
+	j_0_dev << 2 * j0iT.block<1, 2>(0, 0), -1 * j0iT.block<1, 2>(1, 0),
+		-1 * j0iT.block<1, 2>(0, 0), 2 * j0iT.block<1, 2>(1, 0),
+		3 * j0iT.block<1, 2>(0, 0), 3 * j0iT.block<1, 2>(1, 0);
+	j_0_dev *= 1. / 3.;
+	Eigen::MatrixXd L_hg[4];
+	for (i = 0; i < 4; i++)
+	{
+		double xi = gps[i][0];
+		double eta = gps[i][1];
+		L_hg[i].resize(4,2);
+		L_hg[i] << eta, 0.0, xi, 0.0, 0.0, eta, 0.0, xi;
+	}
+	Eigen::MatrixXd M_hg(8,2);
+	M_hg << gamma, zers, zers, gamma;
+	M_hg.transposeInPlace();
+	Eigen::MatrixXd B_red[4];
+	Eigen::MatrixXd K_red(8,8);
+	Eigen::MatrixXd B[4];
+	double volume = 4 * J[4].determinant()*thickness;
+	for (i = 0; i < 4; i++)
+	{
+		B_red[i].resize(3, 8);
+		B[i].resize(3, 8);
+		B_red[i] = j_0_dev * L_hg[i] * M_hg;
+		K_red += volume/4.0*B_red[i].transpose()*C*B_red[i];
+		B[i] = B_0T.transpose() + B_red[i];
+	}
+	Eigen::MatrixXd K(8, 8); 
+	K = K_red + volume*B_0T*C*B_0T.transpose();
+	// Don't forget to swap rows and/or columns of B and K matrix and store it in the object.
 }
 
 

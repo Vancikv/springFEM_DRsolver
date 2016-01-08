@@ -1,5 +1,6 @@
 #pragma once
 #include "stdafx.h"
+#include "Domain.h"
 
 class Element
 {
@@ -11,7 +12,7 @@ public:
 	double density;
 	double thickness;
 	double alfaC;
-	void * domain;
+	Domain * domain;
 	int * nodes;
 	Eigen::MatrixXd K_loc;
 	Eigen::MatrixXd M_loc;

@@ -3,7 +3,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>C:\Program Files\eigen_lib;$(IncludePath)</IncludePath>
+    <IncludePath>I:\Program Files\eigen_lib;C:\Program Files\eigen_lib;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup />
   <ItemGroup />

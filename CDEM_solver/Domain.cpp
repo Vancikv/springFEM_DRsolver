@@ -1,11 +1,15 @@
 #include "stdafx.h"
 #include "Domain.h"
+#include "Element.h"
+#include "Node.h"
 
 
-Domain::Domain()
+Domain::Domain(Node * _nodes, Element * _elements, double c_n, double c_s)
 {
-	//  c_n = 0.0;
-	//  c_s = 0.0;
+	nodes = _nodes;
+	elements = _elements;
+	m_contact_stiffness << c_n, 0.0,
+		0.0, c_s;
 }
 
 

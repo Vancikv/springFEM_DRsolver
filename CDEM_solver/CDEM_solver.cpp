@@ -2,6 +2,8 @@
 //
 
 #include "stdafx.h"
+#include "Domain.h"
+using namespace std;
 
 int main()
 {
