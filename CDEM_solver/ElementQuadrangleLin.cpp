@@ -1,7 +1,7 @@
 #include "stdafx.h"
 #include "ElementQuadrangleLin.h"
 
-ElementQuadrangleLin::ElementQuadrangleLin(double _E, double _nu, double _density, double _thickness, double _alfaC, int * _nodes)
+ElementQuadrangleLin::ElementQuadrangleLin(double _E, double _nu, double _density, double _thickness, double _alfaC, int * _nodes, int _nnodes)
 {
 	E = _E;
 	nu = _nu;
@@ -9,6 +9,8 @@ ElementQuadrangleLin::ElementQuadrangleLin(double _E, double _nu, double _densit
 	thickness = _thickness;
 	alfaC = _alfaC;
 	nodes = _nodes;
+	nnodes = _nnodes;
+	stiffness_dim = 8;
 }
 
 
@@ -21,6 +23,11 @@ ElementQuadrangleLin::~ElementQuadrangleLin()
 // Calculate and store local matrices
 void ElementQuadrangleLin::set_matrices()
 {
+	set_K_isoparametric();
+	M_loc = Eigen::MatrixXd::Identity(stiffness_dim, stiffness_dim);
+	M_loc /= volume*density / 4.0;
+	M_loc_inv = M_loc.inverse();
+	C_loc = M_loc * alfaC;
 }
 
 // Calculate local stiffness matrix. Use reduced integration with hourglass stabilization.
@@ -89,18 +96,29 @@ void ElementQuadrangleLin::set_K_isoparametric()
 	Eigen::MatrixXd B_red[4];
 	Eigen::MatrixXd K_red(8,8);
 	Eigen::MatrixXd B[4];
-	double volume = 4 * J[4].determinant()*thickness;
+	Eigen::MatrixXd Bc[4];
+	volume = 4 * J[4].determinant()*thickness;
 	for (i = 0; i < 4; i++)
 	{
 		B_red[i].resize(3, 8);
 		B[i].resize(3, 8);
+		Bc[i].resize(3, 8);
 		B_red[i] = j_0_dev * L_hg[i] * M_hg;
 		K_red += volume/4.0*B_red[i].transpose()*C*B_red[i];
-		B[i] = B_0T.transpose() + B_red[i];
+		Bc[i] = B_0T.transpose() + B_red[i];
+		B[i] << Bc[i].block<3, 1>(0, 0), Bc[i].block<3, 1>(0, 4), Bc[i].block<3, 1>(0, 1), Bc[i].block<3, 1>(0, 5),
+			Bc[i].block<3, 1>(0, 2), Bc[i].block<3, 1>(0, 6), Bc[i].block<3, 1>(0, 3), Bc[i].block<3, 1>(0, 7);
 	}
-	Eigen::MatrixXd K(8, 8); 
-	K = K_red + volume*B_0T*C*B_0T.transpose();
+	Eigen::MatrixXd K(8, 8);
+	Eigen::MatrixXd Kc(8, 8);
+	Kc = K_red + volume*B_0T*C*B_0T.transpose();
+	K << Kc.block<8, 1>(0, 0), Kc.block<8, 1>(0, 4), Kc.block<8, 1>(0, 1), Kc.block<8, 1>(0, 5),
+		Kc.block<8, 1>(0, 2), Kc.block<8, 1>(0, 6), Kc.block<8, 1>(0, 3), Kc.block<8, 1>(0, 7);
+	K << Kc.block<1, 8>(0, 0), Kc.block<1, 8>(4, 0), Kc.block<1, 8>(1, 0), Kc.block<1, 8>(5, 0),
+		Kc.block<1, 8>(2, 0), Kc.block<1, 8>(6, 0), Kc.block<1, 8>(3, 0), Kc.block<1, 8>(7, 0);
 	// Don't forget to swap rows and/or columns of B and K matrix and store it in the object.
+	K_loc = K;
+	B_matrices = B;
 }
 
 

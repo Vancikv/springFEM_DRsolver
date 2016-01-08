@@ -3,16 +3,18 @@
 
 class Node
 {
-	int ndofs;
 public:
+	Node();
 	Node(int, double, double, int *, int *, Eigen::VectorXd);
 	~Node();
+	int ndofs;
 	double x;
 	double y;
 	Eigen::VectorXd v_disp;
 	Eigen::VectorXd v_velo;
 	Eigen::VectorXd v_acce;
 	double * v_code;
+	Eigen::Vector2d v_norm[2];
 	Eigen::VectorXd v_load;
 	int * supports;
 	int * neighbors;

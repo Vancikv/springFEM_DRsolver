@@ -1,6 +1,8 @@
 #include "stdafx.h"
 #include "Node.h"
 
+Node::Node()
+{}
 
 Node::Node(int _ndofs, double _x, double _y, int * _supports, int * _neighbors, Eigen::VectorXd _v_load)
 {
@@ -24,7 +26,7 @@ Node::Node(int _ndofs, double _x, double _y, int * _supports, int * _neighbors, 
 
 Node::~Node()
 {
-	delete[] v_code;
+	delete [] v_code;
 }
 
 

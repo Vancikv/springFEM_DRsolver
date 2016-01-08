@@ -6,9 +6,10 @@
 class Domain
 {
 public:
-	Domain(Node *, Element *, double, double);
+	Domain(int, int, Node *, Element *, double, double);
 	~Domain();
 	Eigen::Matrix2d m_contact_stiffness;
+	int nelem, nnode;
 	Element * elements;
 	Node * nodes;
 	// Calculate the force acting on a node as a result of its relative displacement to the neighbor nodes.

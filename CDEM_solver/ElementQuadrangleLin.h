@@ -6,7 +6,7 @@ class ElementQuadrangleLin :
 	public Element
 {
 public:
-	ElementQuadrangleLin(double, double, double, double, double, int *);
+	ElementQuadrangleLin(double, double, double, double, double, int *,int);
 	~ElementQuadrangleLin();
 	// Calculate local stiffness matrix. Use reduced integration with hourglass stabilization.
 	void set_K_isoparametric();
