@@ -1,7 +1,9 @@
 #pragma once
 #include "stdafx.h"
+#include "Node.h"
 #include "Domain.h"
 
+class Domain;
 class Element
 {
 public:

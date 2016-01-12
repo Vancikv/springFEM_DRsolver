@@ -1,18 +1,18 @@
 #pragma once
 #include "stdafx.h"
 #include "Element.h"
-#include "ElementQuadrangleLin.h"
 #include "Node.h"
 
+class Element;
 class Domain
 {
 public:
-	Domain(int, int, Node *, ElementQuadrangleLin *, double, double);
+	Domain(int, int, Node *, Element *, double, double);
 	Domain();
 	~Domain();
 	Eigen::Matrix2d m_contact_stiffness;
 	int nelems, nnodes;
-	ElementQuadrangleLin * elements;
+	Element * elements;
 	Node * nodes;
 	// Create a domain structure defined by a text file
 	void load_from_file(std::string filename);
