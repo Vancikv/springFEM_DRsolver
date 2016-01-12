@@ -13,7 +13,7 @@ public:
 	Eigen::VectorXd v_disp;
 	Eigen::VectorXd v_velo;
 	Eigen::VectorXd v_acce;
-	double * v_code;
+	int * v_code;
 	Eigen::Vector2d v_norm[2];
 	Eigen::VectorXd v_load;
 	int * supports;

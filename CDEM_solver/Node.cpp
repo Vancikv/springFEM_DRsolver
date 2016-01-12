@@ -2,7 +2,8 @@
 #include "Node.h"
 
 Node::Node()
-{}
+{
+}
 
 Node::Node(int _ndofs, double _x, double _y, int * _supports, int * _neighbors, Eigen::VectorXd _v_load)
 {
@@ -15,7 +16,7 @@ Node::Node(int _ndofs, double _x, double _y, int * _supports, int * _neighbors, 
 	v_disp = Eigen::VectorXd::Zero(ndofs);
 	v_velo = Eigen::VectorXd::Zero(ndofs);
 	v_acce = Eigen::VectorXd::Zero(ndofs);
-	v_code = new double [ndofs];
+	v_code = new int [ndofs];
 	int i;
 	for (i = 0; i < ndofs; i++)
 	{

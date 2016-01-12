@@ -13,6 +13,10 @@ ElementQuadrangleLin::ElementQuadrangleLin(double _E, double _nu, double _densit
 	stiffness_dim = 8;
 }
 
+ElementQuadrangleLin::ElementQuadrangleLin()
+{
+	stiffness_dim = 8;
+}
 
 ElementQuadrangleLin::~ElementQuadrangleLin()
 {
@@ -62,7 +66,7 @@ void ElementQuadrangleLin::set_K_isoparametric()
 		J[i](0, 1) = x.dot(g_eta + xi*h);
 		J[i](1, 0) = y.dot(g_xi + eta*h);
 		J[i](1, 1) = y.dot(g_eta + xi*h);
-		J_inv[i] = J[i].inverse;
+		J_inv[i] = J[i].inverse();
 	}
 	Eigen::MatrixXd xieta(4, 2);
 	xieta << g_xi, g_eta;

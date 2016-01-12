@@ -7,5 +7,6 @@ using namespace std;
 
 int main()
 {
+	Domain dom();
     return 0;
 }

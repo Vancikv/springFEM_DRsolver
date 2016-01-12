@@ -6,7 +6,7 @@ class Element
 {
 public:
 	Element();
-	~Element();
+	virtual ~Element();
 	double E;
 	double nu;
 	double density;

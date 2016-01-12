@@ -8,9 +8,6 @@ Element::Element()
 	E = 0.0;
 }
 
-Element::~Element()
-{
-}
 
 // Calculate the normal vector of each face and pass it to the adjacent nodes.
 void Element::calc_normal_vectors()
@@ -24,7 +21,7 @@ void Element::calc_normal_vectors()
 	}
 	x(nnodes) = x(0);
 	y(nnodes) = y(0);
-	int dx, dy;
+	double dx, dy;
 	Eigen::Vector2d vn;
 	for (i = 0; i < nnodes; i++)
 	{
@@ -37,10 +34,7 @@ void Element::calc_normal_vectors()
 	}
 }
 
-// Calculate and store local matrices
-void Element::set_matrices()
-{
-}
+
 
 // Perform one iteration of dynamic relaxation. Return the velocity norm.
 double Element::iterate(double dt, double tau)
