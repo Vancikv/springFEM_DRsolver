@@ -60,16 +60,16 @@ void Domain::solve(double t_load, double t_max, int maxiter)
 		elements[i].set_matrices();
 		elements[i].calc_normal_vectors();
 	}
+
 	for (i = 0; i < nnodes; i++)
 	{
 		nodes[i].init_vals(dt);
 	}
-	int itercount = 0;
-	for (i = 0; i < itercount; i++)
+	for (i = 0; i < maxiter; i++)
 	{
 		for (j = 0; j < nelems; j++)
 		{
-			elements[j].iterate(dt, itercount * dt / t_load);
+			elements[j].iterate(dt, i * dt / t_load);
 		}
 	}
 }
@@ -99,9 +99,9 @@ void Domain::load_from_file(std::string filename)
 		}
 		else if (lncount <= 1 + nnodes) // Node records
 		{
+			Node& nd = nodes[lncount - 2];
 			while (std::getline(lss, entry, ' '))
 			{
-				Node& nd = nodes[lncount - 2];
 				if (entry == "ndofs")
 				{
 					int ndf, i;
@@ -145,26 +145,43 @@ void Domain::load_from_file(std::string filename)
 		}
 		else // Element records
 		{
+			Element& el = elements[lncount - 2 - nnodes];
+			el.domain = this;
 			while (std::getline(lss, entry, ' '))
 			{
-				Element& el = elements[lncount - 2 - nnodes];
-				el.domain = this;
 				if (entry == "nodes")
 				{
 					int nnds, i;
-					lss >> nnds;
+					std::getline(lss, entry, ' ');
+					nnds = std::stoi(entry);
 					el.nnodes = nnds;
 					el.nodes = new int[nnds];
 					for (i = 0; i < nnds; i++)
 					{
-						lss >> el.nodes[i];
+						std::getline(lss, entry, ' ');
+						el.nodes[i] = std::stoi(entry);
 					}
 				}
-				if (entry == "E") lss >> el.E;
-				if (entry == "nu") lss >> el.nu;
-				if (entry == "density") lss >> el.density;
-				if (entry == "thickness") lss >> el.thickness;
-				if (entry == "alfaC") lss >> el.alfaC;
+				if (entry == "E") {
+					std::getline(lss, entry, ' ');
+					el.E = std::stold(entry);
+				}
+				if (entry == "nu") {
+					std::getline(lss, entry, ' ');
+					el.nu = std::stold(entry);
+				}
+				if (entry == "density") {
+					std::getline(lss, entry, ' ');
+					el.density = std::stold(entry);
+				}
+				if (entry == "thickness") {
+					std::getline(lss, entry, ' ');
+					el.thickness = std::stold(entry);
+				}
+				if (entry == "alfaC") {
+					std::getline(lss, entry, ' ');
+					el.alfaC = std::stold(entry);
+				}
 			}
 		}
 	}
