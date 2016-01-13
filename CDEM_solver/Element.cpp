@@ -8,6 +8,9 @@ Element::Element()
 	E = 0.0;
 }
 
+Element::~Element(){}
+
+void Element::set_matrices(){}
 
 // Calculate the normal vector of each face and pass it to the adjacent nodes.
 void Element::calc_normal_vectors()

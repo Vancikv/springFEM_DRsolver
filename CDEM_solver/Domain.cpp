@@ -64,12 +64,12 @@ void Domain::solve(double t_load, double t_max, int maxiter)
 	{
 		nodes[i].init_vals(dt);
 	}
-	int itercount = 0;
-	for (i = 0; i < itercount; i++)
+
+	for (i = 0; i < maxiter; i++)
 	{
 		for (j = 0; j < nelems; j++)
 		{
-			elements[j].iterate(dt, itercount * dt / t_load);
+			elements[j].iterate(dt, i * dt / t_load);
 		}
 	}
 }
@@ -99,9 +99,9 @@ void Domain::load_from_file(std::string filename)
 		}
 		else if (lncount <= 1 + nnodes) // Node records
 		{
+			Node& nd = nodes[lncount - 2];
 			while (std::getline(lss, entry, ' '))
 			{
-				Node& nd = nodes[lncount - 2];
 				if (entry == "ndofs")
 				{
 					int ndf, i;
@@ -145,10 +145,10 @@ void Domain::load_from_file(std::string filename)
 		}
 		else // Element records
 		{
+			Element& el = elements[lncount - 2 - nnodes];
+			el.domain = this;
 			while (std::getline(lss, entry, ' '))
 			{
-				Element& el = elements[lncount - 2 - nnodes];
-				el.domain = this;
 				if (entry == "nodes")
 				{
 					int nnds, i;

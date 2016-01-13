@@ -75,11 +75,12 @@ void ElementQuadrangleLin::set_K_isoparametric()
 	Eigen::MatrixXd B_0T(8,3);
 	Eigen::Vector4d zers = Eigen::Vector4d::Zero();
 	B_0T << b.block<4,1>(0,0), zers, b.block<4, 1>(0, 1), zers, b.block<4, 1>(0, 1), b.block<4, 1>(0, 0);
-	Eigen::MatrixXd xy(2, 4);
+	Eigen::MatrixXd xy(4,2);
 	xy << x,y;
-	Eigen::Matrix4d gamma;
-	gamma = Eigen::Matrix4d::Identity() - b*xy.transpose();
-	gamma = gamma * h;
+	Eigen::Matrix4d m_gamma;
+	Eigen::Vector4d gamma;
+	m_gamma = Eigen::Matrix4d::Identity() - b*xy.transpose();
+	gamma = m_gamma * h;
 	Eigen::MatrixXd j_0_dev(3, 4);
 	Eigen::Matrix2d j0iT = J_inv[4].transpose();
 	j_0_dev << 2 * j0iT.block<1, 2>(0, 0), -1 * j0iT.block<1, 2>(1, 0),
@@ -101,7 +102,7 @@ void ElementQuadrangleLin::set_K_isoparametric()
 	M_hg << gamma, zers, zers, gamma;
 	M_hg.transposeInPlace(); // 2x8
 	Eigen::MatrixXd B_red[4];
-	Eigen::MatrixXd K_red(8,8);
+	Eigen::MatrixXd K_red = Eigen::MatrixXd::Zero(8,8);
 	Eigen::MatrixXd B[4];
 	Eigen::MatrixXd Bc[4];
 	volume = 4 * J[4].determinant()*thickness;
@@ -111,10 +112,11 @@ void ElementQuadrangleLin::set_K_isoparametric()
 		B[i].resize(3, 8);
 		Bc[i].resize(3, 8);
 		B_red[i] = j_0_dev * L_hg[i] * M_hg; // 3x4 * 4x2 * 2x8 = 3x8
-		K_red += volume/4.0*B_red[i].transpose()*C*B_red[i]; // 8x3 * 3x3 * 3x8 = 8x8
+		K_red += B_red[i].transpose()*C*B_red[i]; // 8x3 * 3x3 * 3x8 = 8x8
 		Bc[i] = B_0T.transpose() + B_red[i]; // 3x8 + 3x8 = 3x8
 		B[i] << Bc[i].block<3, 1>(0, 0), Bc[i].block<3, 1>(0, 4), Bc[i].block<3, 1>(0, 1), Bc[i].block<3, 1>(0, 5),	Bc[i].block<3, 1>(0, 2), Bc[i].block<3, 1>(0, 6), Bc[i].block<3, 1>(0, 3), Bc[i].block<3, 1>(0, 7); // 3x8
 	}
+	K_red *= volume / 4.0;
 	Eigen::MatrixXd K(8, 8);
 	Eigen::MatrixXd Kc(8, 8);
 	Kc = K_red + volume*B_0T*C*B_0T.transpose(); // 8x8 + 8x3 * 3x3 * 3x8

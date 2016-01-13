@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "Domain.h"
 
+class Domain;
 class Element
 {
 public:
