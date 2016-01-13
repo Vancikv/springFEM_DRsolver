@@ -60,7 +60,6 @@ void Domain::solve(double t_load, double t_max, int maxiter)
 		elements[i].set_matrices();
 		elements[i].calc_normal_vectors();
 	}
-
 	for (i = 0; i < nnodes; i++)
 	{
 		nodes[i].init_vals(dt);
@@ -152,36 +151,19 @@ void Domain::load_from_file(std::string filename)
 				if (entry == "nodes")
 				{
 					int nnds, i;
-					std::getline(lss, entry, ' ');
-					nnds = std::stoi(entry);
+					lss >> nnds;
 					el.nnodes = nnds;
 					el.nodes = new int[nnds];
 					for (i = 0; i < nnds; i++)
 					{
-						std::getline(lss, entry, ' ');
-						el.nodes[i] = std::stoi(entry);
+						lss >> el.nodes[i];
 					}
 				}
-				if (entry == "E") {
-					std::getline(lss, entry, ' ');
-					el.E = std::stold(entry);
-				}
-				if (entry == "nu") {
-					std::getline(lss, entry, ' ');
-					el.nu = std::stold(entry);
-				}
-				if (entry == "density") {
-					std::getline(lss, entry, ' ');
-					el.density = std::stold(entry);
-				}
-				if (entry == "thickness") {
-					std::getline(lss, entry, ' ');
-					el.thickness = std::stold(entry);
-				}
-				if (entry == "alfaC") {
-					std::getline(lss, entry, ' ');
-					el.alfaC = std::stold(entry);
-				}
+				if (entry == "E") lss >> el.E;
+				if (entry == "nu") lss >> el.nu;
+				if (entry == "density") lss >> el.density;
+				if (entry == "thickness") lss >> el.thickness;
+				if (entry == "alfaC") lss >> el.alfaC;
 			}
 		}
 	}

@@ -39,11 +39,12 @@ void ElementQuadrangleLin::set_K_isoparametric()
 {	
 	double shear = E / (2 + 2 * nu);
 	double lame = E * nu / ((1 + nu) * (1 - 2 * nu));
-	Eigen::Matrix3d C; // 3x3
+	Eigen::Matrix3d C;
 	C << 2 * shear + lame, lame, 0.,
 		lame, 2 * shear + lame, 0.,
 		0., 0., shear;
-	Eigen::Vector4d x, y; // 4x1
+	
+	Eigen::Vector4d x, y;
 	int i;
 	for (i = 0; i < 4; i++)
 	{
@@ -68,23 +69,22 @@ void ElementQuadrangleLin::set_K_isoparametric()
 		J_inv[i] = J[i].inverse();
 	}
 	Eigen::MatrixXd xieta(4, 2);
-	xieta << g_xi, g_eta; // 4x1, 4x1
+	xieta << g_xi, g_eta;
 	Eigen::MatrixXd b(4, 2);
-	b = xieta*J_inv[4]; // 4x2 * 2x2 = 4x2
+	b = xieta*J_inv[4];
 	Eigen::MatrixXd B_0T(8,3);
 	Eigen::Vector4d zers = Eigen::Vector4d::Zero();
-	B_0T << b.block<4,1>(0,0), zers, b.block<4, 1>(0, 1), zers, b.block<4, 1>(0, 1), b.block<4, 1>(0, 0); // =8x3
-	Eigen::MatrixXd xy(4, 2);
+	B_0T << b.block<4,1>(0,0), zers, b.block<4, 1>(0, 1), zers, b.block<4, 1>(0, 1), b.block<4, 1>(0, 0);
+	Eigen::MatrixXd xy(2, 4);
 	xy << x,y;
-	Eigen::Matrix4d m_gamma;
-	Eigen::Vector4d gamma;
-	m_gamma = Eigen::Matrix4d::Identity() - b*xy.transpose(); // 4x4 - 4x2 * 2x4 = 4x4
-	gamma = m_gamma * h; // 4x4 * 4x1 = 4x1
+	Eigen::Matrix4d gamma;
+	gamma = Eigen::Matrix4d::Identity() - b*xy.transpose();
+	gamma = gamma * h;
 	Eigen::MatrixXd j_0_dev(3, 4);
 	Eigen::Matrix2d j0iT = J_inv[4].transpose();
 	j_0_dev << 2 * j0iT.block<1, 2>(0, 0), -1 * j0iT.block<1, 2>(1, 0),
 		-1 * j0iT.block<1, 2>(0, 0), 2 * j0iT.block<1, 2>(1, 0),
-		3 * j0iT.block<1, 2>(0, 0), 3 * j0iT.block<1, 2>(1, 0); // 3x4
+		3 * j0iT.block<1, 2>(0, 0), 3 * j0iT.block<1, 2>(1, 0);
 	j_0_dev *= 1. / 3.;
 	Eigen::MatrixXd L_hg[4];
 	for (i = 0; i < 4; i++)
