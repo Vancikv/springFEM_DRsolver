@@ -23,6 +23,8 @@ public:
 	Eigen::MatrixXd M_loc_inv;
 	Eigen::MatrixXd C_loc;
 	double volume;
+	// print data
+	void print_self();
 	// Calculate and store local matrices
 	virtual void set_matrices();
 	// Calculate the normal vector of each face and pass it to the adjacent nodes.

@@ -27,6 +27,10 @@ Domain::~Domain()
 	delete[] nodes;
 }
 
+void Domain::write_state_to_file(std::string filename)
+{
+
+}
 
 // Calculate the force acting on a node as a result of its relative displacement to the neighbor nodes.
 Eigen::Vector2d Domain::get_contact_force(int node_id)
@@ -34,7 +38,7 @@ Eigen::Vector2d Domain::get_contact_force(int node_id)
 	Eigen::Vector2d F(0., 0.);
 	Eigen::Vector2d du_g;
 	Eigen::Matrix2d T;
-	Node n0 = nodes[node_id-1];
+	Node& n0 = nodes[node_id-1];
 	int i;
 	for (i = 0; i < 2; i++)
 	{

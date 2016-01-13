@@ -27,7 +27,9 @@ Node::Node(int _ndofs, double _x, double _y, int * _supports, int * _neighbors, 
 
 Node::~Node()
 {
-	delete [] v_code;
+	delete[] v_code;
+	delete[] supports;
+	delete[] neighbors;
 }
 
 
