@@ -29,7 +29,7 @@ void ElementQuadrangleLin::set_matrices()
 {
 	set_K_isoparametric();
 	M_loc = Eigen::MatrixXd::Identity(stiffness_dim, stiffness_dim);
-	M_loc /= volume*density / 4.0;
+	M_loc *= volume*density / 4.0;
 	M_loc_inv = M_loc.inverse();
 	C_loc = M_loc * alfaC;
 }

@@ -27,9 +27,27 @@ Domain::~Domain()
 	delete[] nodes;
 }
 
-void Domain::write_state_to_file(std::string filename)
+void Domain::write_state_to_file(std::string filename, double time)
 {
+	std::ofstream outfile(filename);
+	int i;
 
+	outfile << nnodes << " " << nelems << " " << time << std::endl;
+	for (i = 0; i < nnodes; i++)
+	{
+		outfile << "node " << (i+1) << " " << nodes[i].x << " " << nodes[i].y << " " << nodes[i].v_disp(0) << " " << nodes[i].v_disp(1)
+			<< " " << nodes[i].v_velo(0) << " " << nodes[i].v_velo(0) << " " << nodes[i].v_acce(0) << " " << nodes[i].v_acce(0) << std::endl;
+	}
+	for (i = 0; i < nelems; i++)
+	{
+		Element& e = elements[i];
+		outfile << "element " << (i + 1) << " " << elements[i].nnodes;
+		for (int j = 0; j < elements[i].nnodes; j++)
+		{
+			outfile << " " << elements[i].nodes[j];
+		}
+		outfile << std::endl;
+	}
 }
 
 // Calculate the force acting on a node as a result of its relative displacement to the neighbor nodes.
@@ -53,7 +71,6 @@ Eigen::Vector2d Domain::get_contact_force(int node_id)
 	return F;
 }
 
-
 // Solve the system using the dynamic relaxation method.
 void Domain::solve(double t_load, double t_max, int maxiter)
 {	
@@ -75,6 +92,32 @@ void Domain::solve(double t_load, double t_max, int maxiter)
 		{
 			elements[j].iterate(dt, i * dt / t_load);
 		}
+	}
+}
+
+void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile, int output_frequency)
+{
+	double dt = t_max / maxiter;
+	int i, j;
+	for (i = 0; i < nelems; i++)
+	{
+		elements[i].set_matrices();
+		elements[i].calc_normal_vectors();
+	}
+	for (i = 0; i < nnodes; i++)
+	{
+		nodes[i].init_vals(dt);
+	}
+
+	for (i = 1; i <= maxiter; i++)
+	{
+		for (j = 0; j < nelems; j++)
+		{
+			elements[j].iterate(dt, i * dt / t_load);
+		}
+		std::string num = std::to_string(i);
+		num = num + ".txt";
+		if (i % output_frequency == 0) write_state_to_file(outfile+num, i * dt);
 	}
 }
 

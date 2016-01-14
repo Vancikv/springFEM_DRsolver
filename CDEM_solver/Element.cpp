@@ -41,8 +41,8 @@ void Element::calc_normal_vectors()
 		dy = y(i + 1) - y(i);
 		vn << dy, -dx;
 		vn /= sqrt(dx*dx+dy*dy);
-		domain->nodes[nodes[i % (nnodes - 1)] - 1].v_norm[1] = vn;
-		domain->nodes[nodes[(i+1) % (nnodes - 1)] - 1].v_norm[0] = vn;
+		domain->nodes[nodes[i % nnodes] - 1].v_norm[1] = vn;
+		domain->nodes[nodes[(i+1) % nnodes] - 1].v_norm[0] = vn;
 	}
 }
 
@@ -70,7 +70,7 @@ double Element::iterate(double dt, double tau)
 		v_acce(i) = nds[i / ndofs]->v_acce(i%ndofs);
 		v_supp(i) = nds[i / ndofs]->supports[i%ndofs];
 	}
-	/*std::cout << "Displacement:" << std::endl << v_disp.transpose() << std::endl;*/
+	//std::cout << "Displacement:" << std::endl << v_disp.transpose() << std::endl;
 
 	// Get next values.
 	v_disp = v_disp + dt * v_velo + 0.5 * dt * dt * v_acce;
@@ -86,10 +86,13 @@ double Element::iterate(double dt, double tau)
 	F_r = -1 * F_k_e.array() * v_supp.array();
 	F_c = -1. * C_loc * v_velo;
 	F_tot = F_k_e + F_k_c + F_c + F_ext + F_r;
-	/*std::cout << "Stiffness force:" << std::endl << F_k_e.transpose() << std::endl;
+	/*
+	std::cout << "External force:" << std::endl << F_ext.transpose() << std::endl;
+	std::cout << "Contact force:" << std::endl << F_k_c.transpose() << std::endl;
+	std::cout << "Stiffness force:" << std::endl << F_k_e.transpose() << std::endl;
 	std::cout << "Reaction force:" << std::endl << F_r.transpose() << std::endl;
-	std::cout << "Total force:" << std::endl << F_tot.transpose() << std::endl;*/
-
+	std::cout << "Total force:" << std::endl << F_tot.transpose() << std::endl;
+	*/
 	v_acce = M_loc_inv * F_tot;
 	for (i = 0; i < stiffness_dim; i++)
 	{
