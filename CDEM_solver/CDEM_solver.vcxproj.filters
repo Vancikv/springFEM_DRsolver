@@ -59,5 +59,12 @@
     <ClCompile Include="Domain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="aux_functions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
+    <None Include="ClassDiagram1.cd" />
   </ItemGroup>
 </Project>

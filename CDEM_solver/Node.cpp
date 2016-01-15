@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "Node.h"
+#include "aux_functions.h"
 
 Node::Node()
 {
@@ -49,15 +50,14 @@ void Node::set_codes(int &maxcode)
 
 
 // Initiate nodal values prior to a dynamic relaxation calculation.
-void Node::init_vals(double tau_0)
+void Node::init_vals(double tau_0, double mass)
 {
 	int i;
 	for (i = 0; i < ndofs; i++)
 	{
 		if (supports[i] == 0)
 		{
-			// v_acce(i) = load_function(tau_0) / mass * v_load(i)
-			// define mass and load_function
+			v_acce(i) = load_function(tau_0) * v_load(i) / mass;
 		}
 	}
 }

@@ -80,17 +80,17 @@ void Domain::solve(double t_load, double t_max, int maxiter)
 	{
 		elements[i].set_matrices();
 		elements[i].calc_normal_vectors();
-	}
-	for (i = 0; i < nnodes; i++)
-	{
-		nodes[i].init_vals(dt);
+		for (j = 0; j < elements[i].nnodes; j++)
+		{
+			nodes[elements[i].nodes[j]-1].init_vals(dt/t_max, elements[i].M_loc(2 * j, 2 * j));
+		}
 	}
 
-	for (i = 0; i < maxiter; i++)
+	for (i = 1; i < maxiter+1; i++)
 	{
 		for (j = 0; j < nelems; j++)
 		{
-			elements[j].iterate(dt, i * dt / t_load);
+			elements[j].iterate(dt, i * dt / t_load, true);
 		}
 	}
 }
@@ -103,13 +103,13 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 	{
 		elements[i].set_matrices();
 		elements[i].calc_normal_vectors();
-	}
-	for (i = 0; i < nnodes; i++)
-	{
-		nodes[i].init_vals(dt);
+		for (j = 0; j < elements[i].nnodes; j++)
+		{
+			nodes[elements[i].nodes[j] - 1].init_vals(dt, elements[i].M_loc(2 * j, 2 * j));
+		}
 	}
 
-	for (i = 1; i <= maxiter; i++)
+	for (i = 1; i <= maxiter+1; i++)
 	{
 		for (j = 0; j < nelems; j++)
 		{

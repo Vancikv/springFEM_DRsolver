@@ -46,10 +46,8 @@ void Element::calc_normal_vectors()
 	}
 }
 
-
-
 // Perform one iteration of dynamic relaxation. Return the velocity norm.
-double Element::iterate(double dt, double tau)
+double Element::iterate(double dt, double tau, bool verbose)
 {
 	Node ** nds;
 	int i;
@@ -70,8 +68,11 @@ double Element::iterate(double dt, double tau)
 		v_acce(i) = nds[i / ndofs]->v_acce(i%ndofs);
 		v_supp(i) = nds[i / ndofs]->supports[i%ndofs];
 	}
-	//std::cout << "Displacement:" << std::endl << v_disp.transpose() << std::endl;
-
+	if (verbose) {
+		std::cout << "Initial Displacement:" << std::endl << v_disp.transpose() << std::endl;
+		std::cout << "Initial Velocity:" << std::endl << v_velo.transpose() << std::endl;
+		std::cout << "Initial Acceleration:" << std::endl << v_acce.transpose() << std::endl;
+	}
 	// Get next values.
 	v_disp = v_disp + dt * v_velo + 0.5 * dt * dt * v_acce;
 	v_velo = v_velo + dt * v_acce;
@@ -79,20 +80,25 @@ double Element::iterate(double dt, double tau)
 	// Get forces.
 	for (i = 0; i < stiffness_dim; i++)
 	{
-		F_k_c(i) = domain->get_contact_force(nodes[i / ndofs])(i%ndofs);
-		F_ext(i) = load_function(tau) * nds[i / ndofs]->v_load[i%ndofs];
+		F_k_c(i) = domain->get_contact_force(nodes[(i / ndofs)])(i%ndofs);
+		F_ext(i) = nds[i / ndofs]->v_load[i%ndofs];
 	}
 	F_k_e = -1 * K_loc * v_disp;
 	F_r = -1 * F_k_e.array() * v_supp.array();
 	F_c = -1. * C_loc * v_velo;
-	F_tot = F_k_e + F_k_c + F_c + F_ext + F_r;
-	/*
-	std::cout << "External force:" << std::endl << F_ext.transpose() << std::endl;
-	std::cout << "Contact force:" << std::endl << F_k_c.transpose() << std::endl;
-	std::cout << "Stiffness force:" << std::endl << F_k_e.transpose() << std::endl;
-	std::cout << "Reaction force:" << std::endl << F_r.transpose() << std::endl;
-	std::cout << "Total force:" << std::endl << F_tot.transpose() << std::endl;
-	*/
+	F_tot = F_k_e + F_k_c + F_c + load_function(tau) * F_ext + F_r;
+
+	if (verbose) {
+		std::cout << "Displacement:" << std::endl << v_disp.transpose() << std::endl;
+		std::cout << "Velocity:" << std::endl << v_velo.transpose() << std::endl;
+		std::cout << "Acceleration:" << std::endl << v_acce.transpose() << std::endl;
+		std::cout << "External force:" << std::endl << F_ext.transpose() << std::endl;
+		std::cout << "Contact force:" << std::endl << F_k_c.transpose() << std::endl;
+		std::cout << "Stiffness force:" << std::endl << F_k_e.transpose() << std::endl;
+		std::cout << "Reaction force:" << std::endl << F_r.transpose() << std::endl;
+		std::cout << "Total force:" << std::endl << F_tot.transpose() << std::endl;
+	}
+	
 	v_acce = M_loc_inv * F_tot;
 	for (i = 0; i < stiffness_dim; i++)
 	{

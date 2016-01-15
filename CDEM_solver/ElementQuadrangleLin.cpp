@@ -119,9 +119,10 @@ void ElementQuadrangleLin::set_K_isoparametric()
 	K_red *= volume / 4.0;
 	Eigen::MatrixXd K(8, 8);
 	Eigen::MatrixXd Kc(8, 8);
+	Eigen::MatrixXd Kc2(8, 8);
 	Kc = K_red + volume*B_0T*C*B_0T.transpose(); // 8x8 + 8x3 * 3x3 * 3x8
-	K << Kc.block<8, 1>(0, 0), Kc.block<8, 1>(0, 4), Kc.block<8, 1>(0, 1), Kc.block<8, 1>(0, 5), Kc.block<8, 1>(0, 2), Kc.block<8, 1>(0, 6), Kc.block<8, 1>(0, 3), Kc.block<8, 1>(0, 7);
-	K << Kc.block<1, 8>(0, 0), Kc.block<1, 8>(4, 0), Kc.block<1, 8>(1, 0), Kc.block<1, 8>(5, 0), Kc.block<1, 8>(2, 0), Kc.block<1, 8>(6, 0), Kc.block<1, 8>(3, 0), Kc.block<1, 8>(7, 0);
+	Kc2 << Kc.block<8, 1>(0, 0), Kc.block<8, 1>(0, 4), Kc.block<8, 1>(0, 1), Kc.block<8, 1>(0, 5), Kc.block<8, 1>(0, 2), Kc.block<8, 1>(0, 6), Kc.block<8, 1>(0, 3), Kc.block<8, 1>(0, 7);
+	K << Kc2.block<1, 8>(0, 0), Kc2.block<1, 8>(4, 0), Kc2.block<1, 8>(1, 0), Kc2.block<1, 8>(5, 0), Kc2.block<1, 8>(2, 0), Kc2.block<1, 8>(6, 0), Kc2.block<1, 8>(3, 0), Kc2.block<1, 8>(7, 0);
 	// Don't forget to swap rows and/or columns of B and K matrix and store it in the object.
 	K_loc = K;
 	B_matrices = B;

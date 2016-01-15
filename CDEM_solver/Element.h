@@ -30,5 +30,5 @@ public:
 	// Calculate the normal vector of each face and pass it to the adjacent nodes.
 	void calc_normal_vectors();
 	// Perform one iteration of dynamic relaxation. Return the velocity norm.
-	double iterate(double dt, double tau);
+	double iterate(double dt, double tau, bool verbose=false);
 };

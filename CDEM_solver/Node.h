@@ -21,7 +21,7 @@ public:
 	// Assign code numbers to node dofs. Increase the maxcode value accordingly.
 	void set_codes(int &maxcode);
 	// Initiate nodal values prior to a dynamic relaxation calculation.
-	void init_vals(double tau_0);
+	void init_vals(double tau_0, double mass);
 	// Set the displacement vector.
 	void set_disp(Eigen::VectorXd);
 	// Set the velocity vector.
