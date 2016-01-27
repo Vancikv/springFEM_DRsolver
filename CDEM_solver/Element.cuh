@@ -1,6 +1,6 @@
 #pragma once
 #include "stdafx.h"
-#include "Domain.h"
+#include "Domain.cuh"
 
 class Domain;
 class Element

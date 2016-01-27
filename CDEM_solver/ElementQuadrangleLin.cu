@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "ElementQuadrangleLin.h"
+#include "ElementQuadrangleLin.cuh"
 
 ElementQuadrangleLin::ElementQuadrangleLin(double _E, double _nu, double _density, double _thickness, double _alfaC, int * _nodes, int _nnodes)
 {

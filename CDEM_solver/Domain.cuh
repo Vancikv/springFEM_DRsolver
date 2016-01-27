@@ -1,7 +1,7 @@
 #pragma once
 #include "stdafx.h"
-#include "Element.h"
-#include "Node.h"
+#include "Element.cuh"
+#include "Node.cuh"
 
 class Element;
 class Domain

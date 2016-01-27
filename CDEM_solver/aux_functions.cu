@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "aux_functions.h"
+#include "aux_functions.cuh"
 
 double load_function(double tau)
 {

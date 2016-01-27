@@ -1,6 +1,6 @@
 #include "stdafx.h"
-#include "Node.h"
-#include "aux_functions.h"
+#include "Node.cuh"
+#include "aux_functions.cuh"
 
 Node::Node()
 {

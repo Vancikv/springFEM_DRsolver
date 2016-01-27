@@ -1,7 +1,7 @@
 #include "stdafx.h"
-#include "Element.h"
-#include "Node.h"
-#include "aux_functions.h"
+#include "Element.cuh"
+#include "Node.cuh"
+#include "aux_functions.cuh"
 
 Element::Element()
 {

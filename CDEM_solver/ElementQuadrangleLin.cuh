@@ -1,6 +1,6 @@
 #pragma once
 #include "stdafx.h"
-#include "Element.h"
+#include "Element.cuh"
 
 class ElementQuadrangleLin :
 	public Element

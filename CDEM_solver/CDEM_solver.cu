@@ -2,7 +2,7 @@
 //
 
 #include "stdafx.h"
-#include "Domain.h"
+#include "Domain.cuh"
 
 
 int main(int argc, char** argv)

@@ -1,7 +1,7 @@
 #include "stdafx.h"
-#include "Domain.h"
-#include "ElementQuadrangleLin.h"
-#include "Node.h"
+#include "Domain.cuh"
+#include "ElementQuadrangleLin.cuh"
+#include "Node.cuh"
 #include <fstream>
 #include <istream>
 
@@ -88,10 +88,11 @@ void Domain::solve(double t_load, double t_max, int maxiter)
 
 	for (i = 1; i < maxiter+1; i++)
 	{
-		for (j = 0; j < nelems; j++)
-		{
-			elements[j].iterate(dt, i * dt / t_load, true);
-		}
+		//for (j = 0; j < nelems; j++)
+		//{
+		//	elements[j].iterate(dt, i * dt / t_load, true);
+		//}
+
 	}
 }
 
