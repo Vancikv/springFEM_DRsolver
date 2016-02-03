@@ -51,6 +51,28 @@ void Domain::write_state_to_file(std::string filename, double time)
 	}
 }
 
+void Domain::write_state_to_file(std::string filename, double time, double loadfunc)
+{
+	std::ofstream outfile(filename);
+	int i;
+
+	outfile << nnodes << " " << nelems << " " << time << " " << loadfunc << std::endl;
+	for (i = 0; i < nnodes; i++)
+	{
+		outfile << "node " << (i + 1) << " " << nodes[i].x << " " << nodes[i].y << " " << nodes[i].v_disp(0) << " " << nodes[i].v_disp(1)
+			<< " " << nodes[i].v_velo(0) << " " << nodes[i].v_velo(0) << " " << nodes[i].v_acce(0) << " " << nodes[i].v_acce(0) << std::endl;
+	}
+	for (i = 0; i < nelems; i++)
+	{
+		Element& e = elements[i];
+		outfile << "element " << (i + 1) << " " << elements[i].nnodes;
+		for (int j = 0; j < elements[i].nnodes; j++)
+		{
+			outfile << " " << elements[i].nodes[j];
+		}
+		outfile << std::endl;
+	}
+}
 // Calculate the force acting on a node as a result of its relative displacement to the neighbor nodes.
 Eigen::Vector2d Domain::get_contact_force(int node_id)
 {
@@ -83,19 +105,20 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 		elements[i].calc_normal_vectors();
 		for (j = 0; j < elements[i].nnodes; j++)
 		{
-			nodes[elements[i].nodes[j]-1].init_vals(dt/t_max, elements[i].M_loc(2 * j, 2 * j));
+			nodes[elements[i].nodes[j]-1].init_vals(0., elements[i].M_loc(2 * j, 2 * j));
 		}
 	}
 
 	// Eigen matrices will be copied into arrays of doubles.
 	// Using the Eigen::Map function defaults in a column by column layout.
-	double * u, *v, *a, *load, *supports, *K, *C, *Mi, *Kc, *n_vects;
+	double * u, *v, *a,*z, *load, *supports, *K, *C, *Mi, *Kc, *n_vects;
 	int * neighbors;
 	int nnodedofs = 2, stiffdim = 8;
 	int vdim = nnodes*nnodedofs;
 	u = new double[vdim];
 	v = new double[vdim];
 	a = new double[vdim];
+	z = new double[vdim];
 	load = new double[vdim];
 	supports = new double[vdim];
 	K = new double[nelems*stiffdim*stiffdim];
@@ -137,15 +160,39 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 
 	Eigen::Map<Eigen::MatrixXd>(Kc, m_contact_stiffness.rows(), m_contact_stiffness.cols()) = m_contact_stiffness;
 
-	for (int k = 0; k < maxiter; k++) // Loop of time steps
+	const double c = 0.01; // Load speed constant
+
+	double loadfunc=0.0, prevloadfunc=0.0;
+	for (int k = 1; k <= maxiter; k++) // Loop of time steps
 	{
-		double loadfunc = load_function(k*dt / t_load);
+		//loadfunc = load_function(k*dt / t_load);
+		double zT_Mi_p = 0.0, pT_Mi_p = 0.0;
+		if (k*dt < t_load)
+		{
+			for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - load function
+			{
+				zT_Mi_p += z[i] * Mi[i] * load[i];
+				pT_Mi_p += Mi[i] * load[i] * load[i];
+			}
+			loadfunc = zT_Mi_p / pT_Mi_p + c * (t_load - k*dt) / t_load;
+			double dp = loadfunc - prevloadfunc;
+			zT_Mi_p = 0.0;
+			for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - load function
+			{
+				zT_Mi_p += (z[i]+load[i]*dp) * Mi[i] * load[i];
+			}
+			loadfunc = zT_Mi_p / pT_Mi_p + c * (t_load - k*dt) / t_load;
+			prevloadfunc = loadfunc;
+		}else{
+			loadfunc = 1.0;
+		}
+
 		for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - increment displacement
 		{
 			u[i] += dt*v[i] + 0.5*dt*dt*a[i];
 			v[i] += dt*a[i];
 		}
-		if (k % output_frequency == 0)
+		if ((k % output_frequency == 0) || (k==1))
 		{
 			std::string num = std::to_string(k);
 			num = num + ".txt";
@@ -156,7 +203,7 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 				nodes[nid].v_velo(did) = v[i];
 				nodes[nid].v_acce(did) = a[i];
 			} 
-			write_state_to_file(outfile + num, k * dt);
+			write_state_to_file(outfile + num, k * dt, loadfunc);
 		}
 		for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - Calculate balance of forces and resulting acceleration
 		{
@@ -202,7 +249,8 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 			double F_c = -C[i] * v[i];
 			// Reaction force
 			double F_r = supports[i] * (-F_k_e - F_k_c - F_c - loadfunc*load[i]);
-			a[i] = Mi[i] * (F_k_e + F_k_c + F_r + F_c + loadfunc*load[i]);
+			z[i] = F_k_e + F_k_c + F_r + F_c;
+			a[i] = Mi[i] * (z[i] + loadfunc*load[i]);
 		}
 	}
 }

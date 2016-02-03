@@ -17,6 +17,7 @@ public:
 	// Create a domain structure defined by a text file
 	void load_from_file(std::string filename);
 	void write_state_to_file(std::string filename, double time);
+	void write_state_to_file(std::string filename, double time, double loadfunc);
 	// Calculate the force acting on a node as a result of its relative displacement to the neighbor nodes.
 	Eigen::Vector2d get_contact_force(int node_id);
 	// Solve the system using the dynamic relaxation method.
