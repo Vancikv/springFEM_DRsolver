@@ -162,11 +162,20 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 
 	const double c = 0.01; // Load speed constant
 
+	double F_k_e = 0;
+	double F_k_c = 0;
+	double F_c = 0;
+	double F_r = 0;
+	double * last_u, * last_v;
+	last_u = new double[vdim];
+	last_v = new double[vdim];
+	int n_inner_steps=3;
+
 	double loadfunc=0.0, prevloadfunc=0.0;
 	for (int k = 1; k <= maxiter; k++) // Loop of time steps
 	{
-		//loadfunc = load_function(k*dt / t_load);
-		double zT_Mi_p = 0.0, pT_Mi_p = 0.0;
+		loadfunc = load_function(k*dt / t_load);
+		/*double zT_Mi_p = 0.0, pT_Mi_p = 0.0;
 		if (k*dt < t_load)
 		{
 			for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - load function
@@ -185,13 +194,66 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 			prevloadfunc = loadfunc;
 		}else{
 			loadfunc = 1.0;
-		}
+		}*/
+
 
 		for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - increment displacement
 		{
+			last_u[i] = u[i];
 			u[i] += dt*v[i] + 0.5*dt*dt*a[i];
+			last_v[i] = v[i];
 			v[i] += dt*a[i];
 		}
+
+		if (k > 1) // Contact stiffness relaxation step
+		{
+			for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - Calculate balance of forces and resulting acceleration
+			{
+				int eid = i / stiffdim; // global number of element
+				int nid = (i / nnodedofs) * nnodedofs; // number of dof 1 of this node
+				int ned = i % stiffdim; // number of dof within element
+				int mdim = stiffdim*stiffdim; // number of elements of the stiffness matrix
+				double kc11 = Kc[0];
+				double kc21 = Kc[1];
+				double kc12 = Kc[2];
+				double kc22 = Kc[3];
+
+				F_k_e = 0;
+				for (j = 0; j < stiffdim; j++)
+				{
+					F_k_e += -K[eid*mdim + j*stiffdim + ned] * u[eid*stiffdim + j];
+				}
+				// Contact stiffness force:
+				F_k_c = 0;
+				for (j = 0; j < 2; j++)
+				{
+					int nbr = neighbors[nid + j];
+					if (nbr != 0)
+					{
+						double t11 = n_vects[4 * (i / nnodedofs) + 2 * j];
+						double t12 = n_vects[4 * (i / nnodedofs) + 2 * j + 1];
+						double t21 = -t12;
+						double t22 = t11;
+						double du_x = u[(nbr - 1)*nnodedofs] - u[nid];
+						double du_y = u[(nbr - 1)*nnodedofs + 1] - u[nid + 1];
+						if (i == nid) // X-component
+						{
+							F_k_c += du_x * (t11*(t11*kc11 + t21*kc21) + t21*(t11*kc12 + t21*kc22)) + du_y * (t12*(t11*kc11 + t21*kc21) + t22*(t11*kc12 + t21*kc22)); // T_T * Kc * T * du_g
+						}
+						else // Y-component
+						{
+							F_k_c += du_x * (t11*(t12*kc11 + t22*kc21) + t21*(t12*kc12 + t22*kc22)) + du_y * (t12*(t12*kc11 + t22*kc21) + t22*(t12*kc12 + t22*kc22)); // T_T * Kc * T * du_g
+						}
+					}
+				}
+				F_r = supports[i] * (-F_k_e - F_k_c - F_c - loadfunc*load[i]);
+				z[i] = F_k_e + F_k_c + F_r + F_c;
+				a[i] = Mi[i] * (z[i] + load_function((k-1)*dt / t_load)*load[i]);
+				u[i] = last_u[i] + dt*v[i] + 0.5*dt*dt*a[i];
+				v[i] = last_v[i] + dt*a[i];
+			}
+		}
+
 		if ((k % output_frequency == 0) || (k==1))
 		{
 			std::string num = std::to_string(k);
@@ -217,13 +279,13 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 			double kc22 = Kc[3];
 
 			// Element stiffness force:
-			double F_k_e = 0;
+			F_k_e = 0;
 			for (j = 0; j < stiffdim; j++)
 			{
 				F_k_e += -K[eid*mdim + j*stiffdim + ned] * u[eid*stiffdim + j];
 			}
 			// Contact stiffness force:
-			double F_k_c = 0;
+			F_k_c = 0;
 			for (j = 0; j < 2; j++)
 			{
 				int nbr = neighbors[nid + j];
@@ -246,9 +308,9 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 				}
 			}
 			// Damping force:
-			double F_c = -C[i] * v[i];
+			F_c = -C[i] * v[i];
 			// Reaction force
-			double F_r = supports[i] * (-F_k_e - F_k_c - F_c - loadfunc*load[i]);
+			F_r = supports[i] * (-F_k_e - F_k_c - F_c - loadfunc*load[i]);
 			z[i] = F_k_e + F_k_c + F_r + F_c;
 			a[i] = Mi[i] * (z[i] + loadfunc*load[i]);
 		}
