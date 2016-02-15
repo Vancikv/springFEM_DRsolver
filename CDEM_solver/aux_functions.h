@@ -7,3 +7,4 @@ const double coef1 = 0.5;
 const double coef2 = 0.5;
  
 double load_function(double tau);
+double vector_norm(double * vec, int size);
