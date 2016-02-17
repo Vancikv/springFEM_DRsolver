@@ -24,8 +24,9 @@ int main(int argc, char** argv)
 		std::cout << "-t2\tTime - maximum time." << std::endl;
 		std::cout << "-ns\tNumber of steps." << std::endl;
 		std::cout << "-of\tOutput frequency." << std::endl;
-	}else if (argc == 13){
-		for (int i = 1; i < 13; i += 2)
+		std::cout << "-is\tNumber of inner steps." << std::endl;
+	}else if (argc == 15){
+		for (int i = 1; i < 15; i += 2)
 		{
 			if (std::string(argv[i]) == "-f") {
 				f = argv[i + 1];
