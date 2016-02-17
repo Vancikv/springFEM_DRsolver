@@ -73,6 +73,47 @@ void Domain::write_state_to_file(std::string filename, double time, double loadf
 		outfile << std::endl;
 	}
 }
+
+void Domain::write_state_to_file(std::string filename, double time, double loadfunc, double *u_norm, double * v_norm, double *a_norm, int normsize)
+{
+	std::ofstream outfile(filename);
+	int i;
+
+	outfile << nnodes << " " << nelems << " " << time << " " << loadfunc << std::endl;
+	for (i = 0; i < nnodes; i++)
+	{
+		outfile << "node " << (i + 1) << " " << nodes[i].x << " " << nodes[i].y << " " << nodes[i].v_disp(0) << " " << nodes[i].v_disp(1)
+			<< " " << nodes[i].v_velo(0) << " " << nodes[i].v_velo(0) << " " << nodes[i].v_acce(0) << " " << nodes[i].v_acce(0) << std::endl;
+	}
+	for (i = 0; i < nelems; i++)
+	{
+		Element& e = elements[i];
+		outfile << "element " << (i + 1) << " " << elements[i].nnodes;
+		for (int j = 0; j < elements[i].nnodes; j++)
+		{
+			outfile << " " << elements[i].nodes[j];
+		}
+		outfile << std::endl;
+	}
+	outfile << "u_norm";
+	for (i = 0; i < normsize; i++)
+	{
+		outfile << " " << u_norm[i];
+	}
+	outfile << std::endl;
+	outfile << "v_norm";
+	for (i = 0; i < normsize; i++)
+	{
+		outfile << " " << v_norm[i];
+	}
+	outfile << std::endl;
+	outfile << "a_norm";
+	for (i = 0; i < normsize; i++)
+	{
+		outfile << " " << a_norm[i];
+	}
+	outfile << std::endl;
+}
 // Calculate the force acting on a node as a result of its relative displacement to the neighbor nodes.
 Eigen::Vector2d Domain::get_contact_force(int node_id)
 {
@@ -95,10 +136,10 @@ Eigen::Vector2d Domain::get_contact_force(int node_id)
 }
 
 // Solve the system using the dynamic relaxation method.
-void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile, int output_frequency)
+void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile, int output_frequency, int n_inner_steps)
 {	
 	double dt = t_max / maxiter;
-	int i, j;
+	int i, j, k, l;
 	for (i = 0; i < nelems; i++)
 	{
 		elements[i].set_matrices();
@@ -170,13 +211,13 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 	last_u = new double[vdim];
 	last_v = new double[vdim];
 	double * u_norm, *v_norm, *a_norm;
-	int n_inner_steps=2;
+	//int n_inner_steps=2;
 	u_norm = new double[n_inner_steps];
 	v_norm = new double[n_inner_steps];
 	a_norm = new double[n_inner_steps];
 
 	double loadfunc=0.0, prevloadfunc=0.0;
-	for (int k = 1; k <= maxiter; k++) // Loop of time steps
+	for (k = 1; k <= maxiter; k++) // Loop of time steps
 	{
 		loadfunc = load_function(k*dt / t_load);
 		/*double zT_Mi_p = 0.0, pT_Mi_p = 0.0;
@@ -225,19 +266,19 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 					double kc22 = Kc[3];
 
 					F_k_e = 0;
-					for (j = 0; j < stiffdim; j++)
+					for (l = 0; l < stiffdim; l++)
 					{
-						F_k_e += -K[eid*mdim + j*stiffdim + ned] * u[eid*stiffdim + j];
+						F_k_e += -K[eid*mdim + l*stiffdim + ned] * u[eid*stiffdim + l];
 					}
 					// Contact stiffness force:
 					F_k_c = 0;
-					for (j = 0; j < 2; j++)
+					for (l = 0; l < 2; l++)
 					{
-						int nbr = neighbors[nid + j];
+						int nbr = neighbors[nid + l];
 						if (nbr != 0)
 						{
-							double t11 = n_vects[4 * (i / nnodedofs) + 2 * j];
-							double t12 = n_vects[4 * (i / nnodedofs) + 2 * j + 1];
+							double t11 = n_vects[4 * (i / nnodedofs) + 2 * l];
+							double t12 = n_vects[4 * (i / nnodedofs) + 2 * l + 1];
 							double t21 = -t12;
 							double t22 = t11;
 							double du_x = u[(nbr - 1)*nnodedofs] - u[nid];
@@ -252,6 +293,7 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 							}
 						}
 					}
+					F_c = -C[i] * v[i];
 					F_r = supports[i] * (-F_k_e - F_k_c - F_c - loadfunc*load[i]);
 					z[i] = F_k_e + F_k_c + F_r + F_c;
 					a[i] = Mi[i] * (z[i] + load_function((k - 1)*dt / t_load)*load[i]);
@@ -260,8 +302,6 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 				{
 					u[i] = last_u[i] + dt*last_v[i] + 0.5*dt*dt*a[i];
 					v[i] = last_v[i] + dt*a[i];
-					last_u[i] = u[i];
-					last_v[i] = v[i];
 				}
 				u_norm[j - 1] = vector_norm(u, vdim);
 				v_norm[j - 1] = vector_norm(v, vdim);

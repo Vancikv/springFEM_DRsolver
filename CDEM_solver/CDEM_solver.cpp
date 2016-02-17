@@ -13,7 +13,7 @@ int main(int argc, char** argv)
 	//std::cin.get();
 	std::string f, o;
 	double t1, t2;
-	int ns, of;
+	int ns, of, is;
 	if (argc == 1)
 	{
 		std::cout << "This is a simple solver for FEM domain of elements connected via springs." << std::endl 
@@ -45,6 +45,9 @@ int main(int argc, char** argv)
 			else if (std::string(argv[i]) == "-of") {
 				of = std::stoi(argv[i + 1]);
 			}
+			else if (std::string(argv[i]) == "-is") {
+				is = std::stoi(argv[i + 1]);
+			}
 			else {
 				std::cout << "Unknown argument " << argv[i] << ", calculation cancelled" << std::endl;
 				return 1;
@@ -52,7 +55,7 @@ int main(int argc, char** argv)
 		}
 		Domain dom = Domain();
 		dom.load_from_file(f);
-		dom.solve(t1, t2, ns, o,of);
+		dom.solve(t1, t2, ns, o,of,is);
 	}else {
 		std::cout << "Wrong number of arguments.";
 	}
