@@ -212,9 +212,9 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 	last_v = new double[vdim];
 	double * u_norm, *v_norm, *a_norm;
 	//int n_inner_steps=2;
-	u_norm = new double[n_inner_steps];
-	v_norm = new double[n_inner_steps];
-	a_norm = new double[n_inner_steps];
+	u_norm = new double[n_inner_steps+1];
+	v_norm = new double[n_inner_steps+1];
+	a_norm = new double[n_inner_steps+1];
 
 	double loadfunc=0.0, prevloadfunc=0.0;
 	for (k = 1; k <= maxiter; k++) // Loop of time steps
@@ -249,6 +249,10 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 			last_v[i] = v[i];
 			v[i] += dt*a[i];
 		}
+
+		u_norm[0] = vector_norm(u, vdim);
+		v_norm[0] = vector_norm(v, vdim);
+		a_norm[0] = vector_norm(a, vdim);
 
 		if (k > 1) // Contact stiffness relaxation step
 		{
@@ -303,9 +307,9 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 					u[i] = last_u[i] + dt*last_v[i] + 0.5*dt*dt*a[i];
 					v[i] = last_v[i] + dt*a[i];
 				}
-				u_norm[j - 1] = vector_norm(u, vdim);
-				v_norm[j - 1] = vector_norm(v, vdim);
-				a_norm[j - 1] = vector_norm(a, vdim);
+				u_norm[j] = vector_norm(u, vdim);
+				v_norm[j] = vector_norm(v, vdim);
+				a_norm[j] = vector_norm(a, vdim);
 			}
 		}
 
@@ -320,7 +324,7 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 				nodes[nid].v_velo(did) = v[i];
 				nodes[nid].v_acce(did) = a[i];
 			} 
-			write_state_to_file(outfile + num, k * dt, loadfunc);
+			write_state_to_file(outfile + num, k * dt, loadfunc, u_norm, v_norm, a_norm, n_inner_steps+1);
 		}
 		for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - Calculate balance of forces and resulting acceleration
 		{
