@@ -5,6 +5,8 @@
 #include <fstream>
 #include <istream>
 #include "aux_functions.h"
+#include <cmath>
+#include <ctime>
 
 Domain::Domain(int _nelems, int _nnodes, Node * _nodes, Element * _elements, double c_n, double c_s)
 {
@@ -138,17 +140,15 @@ Eigen::Vector2d Domain::get_contact_force(int node_id)
 // Solve the system using the dynamic relaxation method.
 void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile, int output_frequency, int n_inner_steps)
 {	
-	double dt = t_max / maxiter;
 	int i, j, k, l;
+	std::string timefile_name = outfile+ "_time.txt";
+	clock_t begin_local_assembly = clock();
 	for (i = 0; i < nelems; i++)
 	{
 		elements[i].set_matrices();
 		elements[i].calc_normal_vectors();
-		for (j = 0; j < elements[i].nnodes; j++)
-		{
-			nodes[elements[i].nodes[j]-1].init_vals(0., elements[i].M_loc(2 * j, 2 * j));
-		}
 	}
+	clock_t end_local_assembly = clock();
 
 	// Eigen matrices will be copied into arrays of doubles.
 	// Using the Eigen::Map function defaults in a column by column layout.
@@ -184,7 +184,6 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 		*(n_vects++) = nodes[i].v_norm[0](1);
 		*(n_vects++) = nodes[i].v_norm[1](0);
 		*(n_vects++) = nodes[i].v_norm[1](1);
-
 	}
 
 	supports -= vdim;
@@ -200,6 +199,8 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 	}
 
 	Eigen::Map<Eigen::MatrixXd>(Kc, m_contact_stiffness.rows(), m_contact_stiffness.cols()) = m_contact_stiffness;
+
+	clock_t end_eigen_to_double = clock();
 
 	const double c = 0.01; // Load speed constant
 
@@ -217,6 +218,30 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 	a_norm = new double[n_inner_steps+1];
 
 	double loadfunc=0.0, prevloadfunc=0.0;
+	// Estimate max time step length, take greatest stiffness and smallest mass:
+	double maxstiff=0.0, maxmassi = 0.0;
+	for (i = 0; i < vdim; i++)
+	{
+		if (K[i] > maxstiff) maxstiff = K[i];
+		if (Mi[i] < maxstiff) maxmassi = Mi[i];
+	}
+	maxstiff += m_contact_stiffness.maxCoeff();
+	clock_t end_time_step_calc = clock();
+	std::cout << "The maximum stiffness is" << maxstiff << std::endl;
+	std::cout << "The minimum inverse mass is" << maxmassi << std::endl;
+	maxiter = t_max / (1 / sqrt(maxstiff*maxmassi) / 3.14159265359) + 1;
+
+	double dt = t_max / maxiter;
+	std::cout << "The calculated time step length is " << dt << " seconds" << std::endl;
+	for (i = 0; i < nelems; i++)
+	{
+		for (j = 0; j < elements[i].nnodes; j++)
+		{
+			nodes[elements[i].nodes[j] - 1].init_vals(0., elements[i].M_loc(2 * j, 2 * j));
+		}
+	}
+
+	clock_t begin_dr = clock();
 	for (k = 1; k <= maxiter; k++) // Loop of time steps
 	{
 		loadfunc = load_function(k*dt / t_load);
@@ -374,6 +399,12 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 			a[i] = Mi[i] * (z[i] + loadfunc*load[i]);
 		}
 	}
+	clock_t end_dr = clock();
+	std::ofstream timefile(timefile_name);
+	timefile << "Local assemblies: " << std::endl << double(end_local_assembly-begin_local_assembly)/CLOCKS_PER_SEC << " seconds" << std::endl << double(end_local_assembly - begin_local_assembly) << " clicks" << std::endl;
+	timefile << "Eigen to double: " << std::endl << double(end_eigen_to_double - end_local_assembly) / CLOCKS_PER_SEC << " seconds" << std::endl << double(end_eigen_to_double - end_local_assembly) << " clicks" << std::endl;
+	timefile << "Time step estimate: " << std::endl << double(end_time_step_calc - end_eigen_to_double) / CLOCKS_PER_SEC << " seconds" << std::endl << double(end_time_step_calc - end_eigen_to_double) << " clicks" << std::endl;
+	timefile << "Dynamic relaxation solution: " << std::endl << double(end_dr - begin_dr) / CLOCKS_PER_SEC << " seconds" << std::endl << double(end_dr - begin_dr) << " clicks" << std::endl;
 }
 
 void Domain::solve(double t_load, double t_max, int maxiter)
