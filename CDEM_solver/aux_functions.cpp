@@ -1,5 +1,6 @@
 #include "stdafx.h"
 #include "aux_functions.h"
+#include <cmath>
 
 double load_function(double tau)
 {
@@ -13,3 +14,11 @@ double load_function(double tau)
 	}
 }
 
+double vector_norm(double * vec, int size)
+{
+	double norm = 0.0;
+	for (int i = 0; i < size; i++)
+		norm += vec[i] * vec[i];
+	norm = sqrt(norm);
+	return norm;
+}
