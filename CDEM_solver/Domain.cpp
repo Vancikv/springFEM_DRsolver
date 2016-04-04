@@ -140,7 +140,7 @@ Eigen::Vector2d Domain::get_contact_force(int node_id)
 // Solve the system using the dynamic relaxation method.
 void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile, int output_frequency, int n_inner_steps)
 {	
-	int i, j, k, l;
+	int i, j, k;
 	std::string timefile_name = outfile+ "_time.txt";
 	clock_t begin_local_assembly = clock();
 	for (i = 0; i < nelems; i++)
@@ -217,35 +217,17 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 	v_norm = new double[n_inner_steps+1];
 	a_norm = new double[n_inner_steps+1];
 
-	double loadfunc=0.0, prevloadfunc=0.0;
+	double loadfunc=0.0;
+
 	// Estimate max time step length, take greatest stiffness and smallest mass:
-	double maxstiff=0.0, maxmassi = 0.0;
-	for (i = 0; i < vdim; i++)
-	{
-		if (K[i] > maxstiff) maxstiff = K[i];
-		if (Mi[i] < maxstiff) maxmassi = Mi[i];
-	}
-	maxstiff += m_contact_stiffness.maxCoeff();
-	clock_t end_time_step_calc = clock();
-	std::cout << "The maximum stiffness is" << maxstiff << std::endl;
-	std::cout << "The minimum inverse mass is" << maxmassi << std::endl;
-	maxiter = t_max / (1 / sqrt(maxstiff*maxmassi) / 3.14159265359) + 1;
 
 	double dt = t_max / maxiter;
-	std::cout << "The calculated time step length is " << dt << " seconds" << std::endl;
-	for (i = 0; i < nelems; i++)
-	{
-		for (j = 0; j < elements[i].nnodes; j++)
-		{
-			nodes[elements[i].nodes[j] - 1].init_vals(0., elements[i].M_loc(2 * j, 2 * j));
-		}
-	}
+	double zT_Mi_p, pT_Mi_p;
 
 	clock_t begin_dr = clock();
 	for (k = 1; k <= maxiter; k++) // Loop of time steps
 	{
-		loadfunc = load_function(k*dt / t_load);
-		/*double zT_Mi_p = 0.0, pT_Mi_p = 0.0;
+		zT_Mi_p = 0.0, pT_Mi_p = 0.0;
 		if (k*dt < t_load)
 		{
 			for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - load function
@@ -254,103 +236,21 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 				pT_Mi_p += Mi[i] * load[i] * load[i];
 			}
 			loadfunc = zT_Mi_p / pT_Mi_p + c * (t_load - k*dt) / t_load;
-			double dp = loadfunc - prevloadfunc;
-			zT_Mi_p = 0.0;
-			for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - load function
-			{
-				zT_Mi_p += (z[i]+load[i]*dp) * Mi[i] * load[i];
-			}
-			loadfunc = zT_Mi_p / pT_Mi_p + c * (t_load - k*dt) / t_load;
-			prevloadfunc = loadfunc;
 		}else{
 			loadfunc = 1.0;
-		}*/
+		}
 
 
 		for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - increment displacement
 		{
-			last_u[i] = u[i];
-			u[i] += dt*v[i] + 0.5*dt*dt*a[i];
-			last_v[i] = v[i];
-			v[i] += dt*a[i];
+			double buff = u[i];
+			u[i] = 2*dt*v[i] + last_u[i];
+			last_u[i] = buff;
+			buff = v[i];
+			v[i] = 2 * dt*a[i] + last_v[i];
+			last_v[i] = buff;
 		}
 
-		u_norm[0] = vector_norm(u, vdim);
-		v_norm[0] = vector_norm(v, vdim);
-		a_norm[0] = vector_norm(a, vdim);
-
-		if (k > 1) // Contact stiffness relaxation step
-		{
-			for (j = 1; j <= n_inner_steps; j++)
-			{
-				for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - Calculate balance of forces and resulting acceleration
-				{
-					int eid = i / stiffdim; // global number of element
-					int nid = (i / nnodedofs) * nnodedofs; // number of dof 1 of this node
-					int ned = i % stiffdim; // number of dof within element
-					int mdim = stiffdim*stiffdim; // number of elements of the stiffness matrix
-					double kc11 = Kc[0];
-					double kc21 = Kc[1];
-					double kc12 = Kc[2];
-					double kc22 = Kc[3];
-
-					F_k_e = 0;
-					for (l = 0; l < stiffdim; l++)
-					{
-						F_k_e += -K[eid*mdim + l*stiffdim + ned] * u[eid*stiffdim + l];
-					}
-					// Contact stiffness force:
-					F_k_c = 0;
-					for (l = 0; l < 2; l++)
-					{
-						int nbr = neighbors[nid + l];
-						if (nbr != 0)
-						{
-							double t11 = n_vects[4 * (i / nnodedofs) + 2 * l];
-							double t12 = n_vects[4 * (i / nnodedofs) + 2 * l + 1];
-							double t21 = -t12;
-							double t22 = t11;
-							double du_x = u[(nbr - 1)*nnodedofs] - u[nid];
-							double du_y = u[(nbr - 1)*nnodedofs + 1] - u[nid + 1];
-							if (i == nid) // X-component
-							{
-								F_k_c += du_x * (t11*(t11*kc11 + t21*kc21) + t21*(t11*kc12 + t21*kc22)) + du_y * (t12*(t11*kc11 + t21*kc21) + t22*(t11*kc12 + t21*kc22)); // T_T * Kc * T * du_g
-							}
-							else // Y-component
-							{
-								F_k_c += du_x * (t11*(t12*kc11 + t22*kc21) + t21*(t12*kc12 + t22*kc22)) + du_y * (t12*(t12*kc11 + t22*kc21) + t22*(t12*kc12 + t22*kc22)); // T_T * Kc * T * du_g
-							}
-						}
-					}
-					F_c = -C[i] * v[i];
-					F_r = supports[i] * (-F_k_e - F_k_c - F_c - loadfunc*load[i]);
-					z[i] = F_k_e + F_k_c + F_r + F_c;
-					a[i] = Mi[i] * (z[i] + load_function((k - 1)*dt / t_load)*load[i]);
-				}
-				for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - increment displacement
-				{
-					u[i] = last_u[i] + dt*last_v[i] + 0.5*dt*dt*a[i];
-					v[i] = last_v[i] + dt*a[i];
-				}
-				u_norm[j] = vector_norm(u, vdim);
-				v_norm[j] = vector_norm(v, vdim);
-				a_norm[j] = vector_norm(a, vdim);
-			}
-		}
-
-		if ((k % output_frequency == 0) || (k==1))
-		{
-			std::string num = std::to_string(k);
-			num = num + ".txt";
-			for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - update nodal values
-			{
-				int nid = i / nnodedofs, did = i%nnodedofs; // node id, nodal dof id
-				nodes[nid].v_disp(did) = u[i];
-				nodes[nid].v_velo(did) = v[i];
-				nodes[nid].v_acce(did) = a[i];
-			} 
-			write_state_to_file(outfile + num, k * dt, loadfunc, u_norm, v_norm, a_norm, n_inner_steps+1);
-		}
 		for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - Calculate balance of forces and resulting acceleration
 		{
 			int eid = i / stiffdim; // global number of element
@@ -398,12 +298,29 @@ void Domain::solve(double t_load, double t_max, int maxiter, std::string outfile
 			z[i] = F_k_e + F_k_c + F_r + F_c;
 			a[i] = Mi[i] * (z[i] + loadfunc*load[i]);
 		}
+		u_norm[0] = vector_norm(u, vdim);
+		v_norm[0] = vector_norm(v, vdim);
+		a_norm[0] = vector_norm(a, vdim);
+
+		if ((k % output_frequency == 0) || (k == 1))
+		{
+			std::string num = std::to_string(k);
+			std::cout << loadfunc << std::endl;
+			num = num + ".txt";
+			for (i = 0; i < nnodedofs*nnodes; i++) // Loop of dofs - update nodal values
+			{
+				int nid = i / nnodedofs, did = i%nnodedofs; // node id, nodal dof id
+				nodes[nid].v_disp(did) = u[i];
+				nodes[nid].v_velo(did) = v[i];
+				nodes[nid].v_acce(did) = a[i];
+			}
+			write_state_to_file(outfile + num, k * dt, loadfunc, u_norm, v_norm, a_norm, n_inner_steps + 1);
+		}
 	}
 	clock_t end_dr = clock();
 	std::ofstream timefile(timefile_name);
 	timefile << "Local assemblies: " << std::endl << double(end_local_assembly-begin_local_assembly)/CLOCKS_PER_SEC << " seconds" << std::endl << double(end_local_assembly - begin_local_assembly) << " clicks" << std::endl;
 	timefile << "Eigen to double: " << std::endl << double(end_eigen_to_double - end_local_assembly) / CLOCKS_PER_SEC << " seconds" << std::endl << double(end_eigen_to_double - end_local_assembly) << " clicks" << std::endl;
-	timefile << "Time step estimate: " << std::endl << double(end_time_step_calc - end_eigen_to_double) / CLOCKS_PER_SEC << " seconds" << std::endl << double(end_time_step_calc - end_eigen_to_double) << " clicks" << std::endl;
 	timefile << "Dynamic relaxation solution: " << std::endl << double(end_dr - begin_dr) / CLOCKS_PER_SEC << " seconds" << std::endl << double(end_dr - begin_dr) << " clicks" << std::endl;
 }
 
